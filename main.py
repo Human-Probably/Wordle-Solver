@@ -181,7 +181,7 @@ def validate_word(word):
     if guess in words:
         return True
 
-    if builtins.input(f"{Fore.RED}Invalid word or spelling, press enter to retry: {Style.RESET_ALL}") in ("", " "):
+    if builtins.input(f"{Fore.RED}Invalid word or spelling, enter anything to retry: {Style.RESET_ALL}") not in ("n", "N"):
         return False
     return True
 
@@ -434,7 +434,7 @@ def main():
             output = "\n " + output
             if output not in history:
                 history.append(output)
-            if builtins.input(f"\n{Fore.GREEN}Congratulations! Press Enter to start new: {Style.RESET_ALL}") in ("", " "):
+            if builtins.input(f"\n{Fore.GREEN}Congratulations! Enter anything to start new: {Style.RESET_ALL}") not in ("n", "N"):
                 return True
 
 
