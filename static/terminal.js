@@ -16,7 +16,6 @@ socket.on("output", (data) => {
 
 term.onData(data => {
 
-    // ENTER → ALWAYS allow empty or non-empty input
     if (data === "\r") {
         socket.emit("input", buffer);
         term.write("\r\n");
@@ -24,7 +23,6 @@ term.onData(data => {
         return;
     }
 
-    // BACKSPACE
     if (data === "\x7f") {
         if (buffer.length > 0) {
             buffer = buffer.slice(0, -1);
@@ -33,16 +31,10 @@ term.onData(data => {
         return;
     }
 
-    // IGNORE multi-char control sequences (safe filtering)
-    if (data.length !== 1) {
-        return;
-    }
+    if (data.length !== 1) return;
 
-    // allow all visible ASCII (DO NOT restrict to letters)
     const code = data.charCodeAt(0);
-    if (code < 32 || code > 126) {
-        return;
-    }
+    if (code < 32 || code > 126) return;
 
     buffer += data;
     term.write(data);

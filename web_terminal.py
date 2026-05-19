@@ -1,7 +1,8 @@
 import eventlet
 eventlet.monkey_patch()
-from flask import Flask, render_template
-from flask_socketio import SocketIO, emit
+
+from flask import Flask, render_template, request
+from flask_socketio import SocketIO
 import threading
 import queue
 import builtins
@@ -11,29 +12,55 @@ import io
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-input_queue = queue.Queue()
+# store per-client state
+clients = {}
 
 
 class SocketOutput(io.StringIO):
+    def __init__(self, sid):
+        super().__init__()
+        self.sid = sid
+
     def write(self, text):
         if text:
-            socketio.emit("output", text)
+            socketio.emit("output", text, to=self.sid)
         return len(text)
 
 
-def socket_input(prompt=""):
-    socketio.emit("output", prompt)
+def make_input_function(sid):
+    def socket_input(prompt=""):
+        socketio.emit("output", prompt, to=sid)
 
-    while True:
-        data = input_queue.get()
+        q = clients[sid]["queue"]
 
-        if data is None:
-            continue
+        while True:
+            data = q.get()
 
-        data = data.strip()
+            if data is None:
+                continue
 
-        if data != "":
-            return data
+            data = data.strip()
+
+            if data != "":
+                return data
+
+    return socket_input
+
+
+def run_program(sid):
+    import main
+
+    builtins.input = make_input_function(sid)
+
+    sys.stdout = SocketOutput(sid)
+    sys.stderr = SocketOutput(sid)
+
+    try:
+        while True:
+            if not main.main():
+                break
+    except Exception as e:
+        socketio.emit("output", f"\nError: {e}\n", to=sid)
 
 
 @app.route("/")
@@ -41,38 +68,40 @@ def index():
     return render_template("index.html")
 
 
-@socketio.on("input")
-def handle_input(data):
-    clean = (data or "").strip()
-
-    # reject empty / garbage input
-    if clean == "":
-        return
-
-    input_queue.put(clean)
-
-
-def run_program():
-    import main
-
-    builtins.input = socket_input
-
-    sys.stdout = SocketOutput()
-    sys.stderr = SocketOutput()
-
-    try:
-        while True:
-            if not main.main():
-                break
-    except KeyboardInterrupt:
-        pass
-
-
 @socketio.on("connect")
 def handle_connect():
-    thread = threading.Thread(target=run_program)
+    sid = request.sid
+
+    clients[sid] = {
+        "queue": queue.Queue(),
+        "thread": None
+    }
+
+    thread = threading.Thread(target=run_program, args=(sid,))
     thread.daemon = True
     thread.start()
+
+    clients[sid]["thread"] = thread
+
+
+@socketio.on("disconnect")
+def handle_disconnect():
+    sid = request.sid
+    if sid in clients:
+        del clients[sid]
+
+
+@socketio.on("input")
+def handle_input(data):
+    sid = request.sid
+
+    if sid not in clients:
+        return
+
+    clean = (data or "").strip()
+
+    # IMPORTANT: allow empty input (your program needs it)
+    clients[sid]["queue"].put(clean)
 
 
 if __name__ == "__main__":
