@@ -7,13 +7,26 @@ const term = new Terminal({
 });
 
 term.open(document.getElementById("terminal"));
+term.focus();
 
 let buffer = "";
 
-// ONLY accept clean printable characters
-term.onData(data => {
+// Show something immediately so it is obvious the page loaded
+term.write("Loading...\\r\\n");
 
-    // ENTER
+socket.on("connect", () => {
+    term.write("Connected.\\r\\n");
+});
+
+socket.on("connect_error", (err) => {
+    term.write("\\r\\nConnection error: " + err.message + "\\r\\n");
+});
+
+socket.on("output", (data) => {
+    term.write(data);
+});
+
+term.onData(data => {
     if (data === "\r") {
         socket.emit("input", buffer);
         term.write("\r\n");
@@ -21,7 +34,6 @@ term.onData(data => {
         return;
     }
 
-    // BACKSPACE
     if (data === "\x7f") {
         if (buffer.length > 0) {
             buffer = buffer.slice(0, -1);
@@ -30,16 +42,15 @@ term.onData(data => {
         return;
     }
 
-    // BLOCK control / weird IME / mobile junk
-    if (data.length > 1) return;
-
-    const char = data;
-
-    // only allow safe ASCII
-    if (!/[a-zA-Z%\/\\\-#!?@+]/.test(char) && char !== " ") {
+    if (data.length !== 1) {
         return;
     }
 
-    buffer += char;
-    term.write(char);
+    // Allow normal typing only
+    if (!/^[\x20-\x7E]$/.test(data)) {
+        return;
+    }
+
+    buffer += data;
+    term.write(data);
 });
