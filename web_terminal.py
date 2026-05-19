@@ -2,7 +2,7 @@ import eventlet
 eventlet.monkey_patch()
 
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, disconnect
 import threading
 import queue
 import builtins
@@ -12,8 +12,12 @@ import io
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# store per-client state
-clients = {}
+active_session = {
+    "sid": None,
+    "queue": None,
+    "stop": None,
+    "thread": None,
+}
 
 
 class SocketOutput(io.StringIO):
@@ -27,40 +31,25 @@ class SocketOutput(io.StringIO):
         return len(text)
 
 
-def make_input_function(sid):
-    def socket_input(prompt=""):
-        socketio.emit("output", prompt, to=sid)
+def socket_input(sid, prompt=""):
+    socketio.emit("output", prompt, to=sid)
 
-        q = clients[sid]["queue"]
+    q = active_session["queue"]
+    stop_event = active_session["stop"]
 
-        while True:
-            data = q.get()
+    while True:
+        if stop_event.is_set():
+            raise SystemExit
 
-            if data is None:
-                continue
+        try:
+            data = q.get(timeout=0.2)
+        except queue.Empty:
+            continue
 
-            data = data.strip()
+        if data is None:
+            continue
 
-            if data != "":
-                return data
-
-    return socket_input
-
-
-def run_program(sid):
-    import main
-
-    builtins.input = make_input_function(sid)
-
-    sys.stdout = SocketOutput(sid)
-    sys.stderr = SocketOutput(sid)
-
-    try:
-        while True:
-            if not main.main():
-                break
-    except Exception as e:
-        socketio.emit("output", f"\nError: {e}\n", to=sid)
+        return data
 
 
 @app.route("/")
@@ -72,36 +61,85 @@ def index():
 def handle_connect():
     sid = request.sid
 
-    clients[sid] = {
-        "queue": queue.Queue(),
-        "thread": None
-    }
+    if active_session["sid"] is not None:
+        socketio.emit(
+            "busy",
+            {"message": "Another session is active. Please refresh this page after it leaves."},
+            to=sid
+        )
 
-    thread = threading.Thread(target=run_program, args=(sid,))
-    thread.daemon = True
+        def kick():
+            socketio.sleep(0.1)
+            disconnect(sid=sid)
+
+        socketio.start_background_task(kick)
+        return
+
+    active_session["sid"] = sid
+    active_session["queue"] = queue.Queue()
+    active_session["stop"] = threading.Event()
+
+    thread = threading.Thread(target=run_program, args=(sid,), daemon=True)
+    active_session["thread"] = thread
     thread.start()
-
-    clients[sid]["thread"] = thread
 
 
 @socketio.on("disconnect")
 def handle_disconnect():
     sid = request.sid
-    if sid in clients:
-        del clients[sid]
+
+    if active_session["sid"] == sid:
+        if active_session["stop"] is not None:
+            active_session["stop"].set()
+
+        if active_session["queue"] is not None:
+            active_session["queue"].put(None)
 
 
 @socketio.on("input")
 def handle_input(data):
     sid = request.sid
 
-    if sid not in clients:
+    if active_session["sid"] != sid:
         return
 
-    clean = (data or "").strip()
+    # IMPORTANT: do not strip here; your program needs empty input for confirmations.
+    if active_session["queue"] is not None:
+        active_session["queue"].put("" if data is None else data)
 
-    # IMPORTANT: allow empty input (your program needs it)
-    clients[sid]["queue"].put(clean)
+
+def run_program(sid):
+    import main
+
+    original_input = builtins.input
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+
+    builtins.input = lambda prompt="": socket_input(sid, prompt)
+    sys.stdout = SocketOutput(sid)
+    sys.stderr = SocketOutput(sid)
+
+    try:
+        while True:
+            if active_session["stop"] is not None and active_session["stop"].is_set():
+                break
+
+            if not main.main():
+                break
+    except SystemExit:
+        pass
+    except Exception as e:
+        socketio.emit("output", f"\nError: {e}\n", to=sid)
+    finally:
+        builtins.input = original_input
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+
+        if active_session["sid"] == sid:
+            active_session["sid"] = None
+            active_session["queue"] = None
+            active_session["stop"] = None
+            active_session["thread"] = None
 
 
 if __name__ == "__main__":

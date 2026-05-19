@@ -9,12 +9,29 @@ term.open(document.getElementById("terminal"));
 term.focus();
 
 let buffer = "";
+let locked = false;
 
 socket.on("output", (data) => {
     term.write(data);
 });
 
+socket.on("busy", (payload) => {
+    locked = true;
+    const message = (payload && payload.message) ? payload.message : "Another session is active.";
+    term.write("\r\n" + message + "\r\n");
+    socket.disconnect();
+});
+
+socket.on("disconnect", () => {
+    if (!locked) {
+        term.write("\r\nSession ended. Refresh the page to start again.\r\n");
+    }
+});
+
 term.onData(data => {
+    if (locked) {
+        return;
+    }
 
     if (data === "\r") {
         socket.emit("input", buffer);
@@ -31,10 +48,14 @@ term.onData(data => {
         return;
     }
 
-    if (data.length !== 1) return;
+    if (data.length !== 1) {
+        return;
+    }
 
     const code = data.charCodeAt(0);
-    if (code < 32 || code > 126) return;
+    if (code < 32 || code > 126) {
+        return;
+    }
 
     buffer += data;
     term.write(data);
