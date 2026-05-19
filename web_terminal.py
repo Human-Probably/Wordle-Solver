@@ -61,19 +61,15 @@ def index():
 def handle_connect():
     sid = request.sid
 
+    # block if another session is active
     if active_session["sid"] is not None:
         socketio.emit(
             "busy",
-            {"message": "Another session is active. Please refresh this page after it leaves."},
+            {"message": "Another session is active. Please try again later."},
             to=sid
         )
 
-        def kick():
-            socketio.sleep(0.1)
-            disconnect(sid=sid)
-
-        socketio.start_background_task(kick)
-        return
+        return False  # <-- THIS is the key change
 
     active_session["sid"] = sid
     active_session["queue"] = queue.Queue()
