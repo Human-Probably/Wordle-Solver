@@ -5,10 +5,11 @@ import queue
 import builtins
 import sys
 import io
-import os
+import eventlet
+eventlet.monkey_patch()
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 input_queue = queue.Queue()
 
@@ -59,5 +60,7 @@ def handle_connect():
 
 
 if __name__ == "__main__":
+    import os
+
     port = int(os.environ.get("PORT", 5000))
     socketio.run(app, host="0.0.0.0", port=port)
