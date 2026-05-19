@@ -282,7 +282,7 @@ def main():
                         addition = Back.GREEN + Fore.BLACK
                     output = output + addition + " " + guess[i].upper() + " " + Style.RESET_ALL + " "
 
-                if builtins.input(output + Fore.LIGHTWHITE_EX + f"\nPlease confirm by pressing enter: {Style.RESET_ALL}") not in ("", " "):
+                if builtins.input(output + Fore.LIGHTWHITE_EX + f"\nIf this is wrong type 'N', otherwise enter anything: {Style.RESET_ALL}") not in ("n", "N"):
                     continue
 
                 break
@@ -383,8 +383,8 @@ def main():
                     addition = Back.GREEN + Fore.BLACK
                 output = output + addition + " " + guess[i].upper() + " " + Style.RESET_ALL + " "
 
-            if builtins.input(output + Style.RESET_ALL + f"\n{Fore.LIGHTWHITE_EX}Please confirm by pressing enter: "
-                                                f"{Style.RESET_ALL}") not in ("", " "):
+            if builtins.input(output + Style.RESET_ALL + f"\n{Fore.LIGHTWHITE_EX}If this is wrong type 'N', otherwise enter anything: "
+                                                         f"{Style.RESET_ALL}") not in ("n", "N"):
                 continue
 
         memory = [words, history, known_letters, ]  # May require more in future
