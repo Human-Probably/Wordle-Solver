@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Solver</title>
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+
+    <style>
+        body {
+            margin: 0;
+            background: black;
+        }
+
+        #terminal {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="terminal"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='terminal.js') }}"></script>
+
+</body>
+</html>
