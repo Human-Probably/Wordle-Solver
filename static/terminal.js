@@ -29,10 +29,8 @@ socket.on("disconnect", () => {
 });
 
 term.onData(data => {
-    if (locked) {
-        return;
-    }
 
+    // ENTER
     if (data === "\r") {
         socket.emit("input", buffer);
         term.write("\r\n");
@@ -40,6 +38,7 @@ term.onData(data => {
         return;
     }
 
+    // BACKSPACE
     if (data === "\x7f") {
         if (buffer.length > 0) {
             buffer = buffer.slice(0, -1);
@@ -48,11 +47,18 @@ term.onData(data => {
         return;
     }
 
-    if (data.length !== 1) {
+    // MOBILE FIX: handle multi-character input properly
+    // (this is the key change)
+    if (data.length > 1) {
+        // treat as a full paste / mobile commit
+        buffer += data;
+        term.write(data);
         return;
     }
 
     const code = data.charCodeAt(0);
+
+    // allow printable ASCII only
     if (code < 32 || code > 126) {
         return;
     }
