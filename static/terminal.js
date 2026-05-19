@@ -3,51 +3,43 @@ const socket = io();
 const term = new Terminal({
     cursorBlink: true,
     convertEol: true,
-    theme: {
-        background: "#000000"
-    }
+    disableStdin: false,
 });
 
 term.open(document.getElementById("terminal"));
 
-let currentLine = "";
+let buffer = "";
 
-
-socket.on("output", (data) => {
-    term.write(data);
-});
-
-
-term.textarea.setAttribute("autocorrect", "off");
-term.textarea.setAttribute("autocapitalize", "none");
-term.textarea.setAttribute("autocomplete", "off");
-term.textarea.setAttribute("spellcheck", "false");
-
-
+// ONLY accept clean printable characters
 term.onData(data => {
 
     // ENTER
     if (data === "\r") {
-        socket.emit("input", currentLine);
+        socket.emit("input", buffer);
         term.write("\r\n");
-        currentLine = "";
+        buffer = "";
         return;
     }
 
     // BACKSPACE
     if (data === "\x7f") {
-        if (currentLine.length > 0) {
-            currentLine = currentLine.slice(0, -1);
+        if (buffer.length > 0) {
+            buffer = buffer.slice(0, -1);
             term.write("\b \b");
         }
         return;
     }
 
-    // Ignore weird mobile control sequences
-    if (data.charCodeAt(0) < 32) {
+    // BLOCK control / weird IME / mobile junk
+    if (data.length > 1) return;
+
+    const char = data;
+
+    // only allow safe ASCII
+    if (!/[a-zA-Z%\/\\\-#!?@+]/.test(char) && char !== " ") {
         return;
     }
 
-    currentLine += data;
-    term.write(data);
+    buffer += char;
+    term.write(char);
 });

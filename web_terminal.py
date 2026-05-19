@@ -23,7 +23,17 @@ class SocketOutput(io.StringIO):
 
 def socket_input(prompt=""):
     socketio.emit("output", prompt)
-    return input_queue.get()
+
+    while True:
+        data = input_queue.get()
+
+        if data is None:
+            continue
+
+        data = data.strip()
+
+        if data != "":
+            return data
 
 
 @app.route("/")
@@ -33,7 +43,13 @@ def index():
 
 @socketio.on("input")
 def handle_input(data):
-    input_queue.put(data)
+    clean = (data or "").strip()
+
+    # reject empty / garbage input
+    if clean == "":
+        return
+
+    input_queue.put(clean)
 
 
 def run_program():
