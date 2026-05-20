@@ -81,7 +81,10 @@ def list_all(l, p):
     for i in l[::-1]:
         pos = l.index(i)
         shortcut.append(i)
-        print(f"{pos+1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i]/total)*100:.2f}%")
+        try:
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}%")
+        except ZeroDivisionError:
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100%")
     print(f"{Style.BRIGHT}Total number is {len(l)}\n{Style.RESET_ALL}")
     return shortcut[::-1]
 
@@ -96,7 +99,10 @@ def list_10(l, p):
     for i in l[:10][::-1]:
         pos = l.index(i)
         shortcut.append(i)
-        print(f"{pos+1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}%")
+        try:
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}%")
+        except ZeroDivisionError:
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100%")
     print(f"{Style.BRIGHT}Total number is {len(l)}\n{Style.RESET_ALL}")
     return shortcut[::-1]
 
