@@ -5,7 +5,6 @@ import time
 from colorama import init, Fore, Back, Style
 from collections import Counter
 from random import choice as r
-import builtins
 
 init()
 
@@ -16,6 +15,14 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+
+allowed_solutions_path = resource_path("solutions.txt")
+with open(allowed_solutions_path, "r") as file:
+    temp = file.readlines()
+    allowed_solutions = set()
+    for line in temp:
+        allowed_solutions.add(line.replace("\n", ""))
 
 
 def best_guess(letters, words, green_letters):
@@ -71,6 +78,13 @@ def best_guess(letters, words, green_letters):
     return guesses
 
 
+def validation(word):
+    if word in allowed_solutions:
+        return "✅"
+    return ""
+
+
+
 def list_all(l, p):
     print("")
     total = 0
@@ -82,9 +96,9 @@ def list_all(l, p):
         pos = l.index(i)
         shortcut.append(i)
         try:
-            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}%")
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}% {validation(i)}")
         except ZeroDivisionError:
-            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100%")
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100% {validation(i)}")
     print(f"{Style.BRIGHT}Total number is {len(l)}\n{Style.RESET_ALL}")
     return shortcut[::-1]
 
@@ -100,9 +114,9 @@ def list_10(l, p):
         pos = l.index(i)
         shortcut.append(i)
         try:
-            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}%")
+            print(f"{pos+1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - {(p[i] / total) * 100:.2f}% {validation(i)}")
         except ZeroDivisionError:
-            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100%")
+            print(f"{pos + 1}: {Fore.CYAN}{i.upper()}{Style.RESET_ALL} - 100% {validation(i)}")
     print(f"{Style.BRIGHT}Total number is {len(l)}\n{Style.RESET_ALL}")
     return shortcut[::-1]
 
@@ -187,7 +201,7 @@ def validate_word(word):
     if guess in words:
         return True
 
-    if builtins.input(f"{Fore.RED}Invalid word or spelling, enter anything to retry: {Style.RESET_ALL}") not in ("n", "N"):
+    if input(f"{Fore.RED}Invalid word or spelling, press enter to retry: {Style.RESET_ALL}") in ("", " "):
         return False
     return True
 
@@ -230,7 +244,7 @@ def main():
 
     # words list is all current possible words in order
 
-    print("\033[2J\033[H", end="")
+    os.system("cls" if os.name == "nt" else "clear")
     print(f"{Fore.LIGHTBLACK_EX}GAME HAS BEEN RESET\n{Style.RESET_ALL}")
     instruct()
 
@@ -256,8 +270,8 @@ def main():
 
             cancel = False
             while True:
-                result = list(builtins.input(f"\n{Fore.LIGHTWHITE_EX}Next guess: {Fore.CYAN}{guess.upper()}"
-                                             f"{Fore.LIGHTWHITE_EX}\nResult (RAG): {Style.RESET_ALL}").lower())
+                result = list(input(f"\n{Fore.LIGHTWHITE_EX}Next guess: {Fore.CYAN}{guess.upper()}"
+                                    f"{Fore.LIGHTWHITE_EX}\nResult (RAG): {Style.RESET_ALL}").lower())
 
                 try:
                     if result[0] == "%":
@@ -288,7 +302,7 @@ def main():
                         addition = Back.GREEN + Fore.BLACK
                     output = output + addition + " " + guess[i].upper() + " " + Style.RESET_ALL + " "
 
-                if builtins.input(output + Fore.LIGHTWHITE_EX + f"\nIf this is wrong type 'N', otherwise enter anything: {Style.RESET_ALL}") in ("n", "N"):
+                if input(output + Fore.LIGHTWHITE_EX + f"\nPlease confirm by pressing enter: {Style.RESET_ALL}") not in ("", " "):
                     continue
 
                 break
@@ -298,7 +312,7 @@ def main():
                 continue
 
         else:
-            guess = builtins.input(f"\n{Fore.LIGHTWHITE_EX}Next guess: {Style.RESET_ALL}").lower()
+            guess = input(f"\n{Fore.LIGHTWHITE_EX}Next guess: {Style.RESET_ALL}").lower()
 
             if guess == "!":
                 shortcut = list_all(words, probs)
@@ -312,7 +326,7 @@ def main():
                     shortcut = list()
                     for i in range(5)[::-1]:
                         shortcut.append(best[i])
-                        print(str(i+1) + ": " + Fore.CYAN + best[i].upper() + Style.RESET_ALL)
+                        print(str(i+1) + ": " + Fore.CYAN + best[i].upper() + Style.RESET_ALL + f" {validation(i)}")
                 except IndexError:
                     pass
                 shortcut = shortcut[::-1]
@@ -366,7 +380,7 @@ def main():
             if not validate_word(guess):
                 continue
 
-            result = list(builtins.input(f"{Fore.LIGHTWHITE_EX}Result (RAG): {Style.RESET_ALL}").lower())
+            result = list(input(f"{Fore.LIGHTWHITE_EX}Result (RAG): {Style.RESET_ALL}").lower())
             allowed = tuple("rag")
             if result == ["r"]:
                 result = ["r" for _ in range(5)]
@@ -389,8 +403,8 @@ def main():
                     addition = Back.GREEN + Fore.BLACK
                 output = output + addition + " " + guess[i].upper() + " " + Style.RESET_ALL + " "
 
-            if builtins.input(output + Style.RESET_ALL + f"\n{Fore.LIGHTWHITE_EX}If this is wrong type 'N', otherwise enter anything: "
-                                                         f"{Style.RESET_ALL}") in ("n", "N"):
+            if input(output + Style.RESET_ALL + f"\n{Fore.LIGHTWHITE_EX}Please confirm by pressing enter: "
+                                                f"{Style.RESET_ALL}") not in ("", " "):
                 continue
 
         memory = [words, history, known_letters, ]  # May require more in future
@@ -440,7 +454,7 @@ def main():
             output = "\n " + output
             if output not in history:
                 history.append(output)
-            if builtins.input(f"\n{Fore.GREEN}Congratulations! Enter anything to start new: {Style.RESET_ALL}") not in ("n", "N"):
+            if input(f"\n{Fore.GREEN}Congratulations! Press Enter to start new: {Style.RESET_ALL}") in ("", " "):
                 return True
 
 
