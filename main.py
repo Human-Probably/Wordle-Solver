@@ -10,6 +10,7 @@ init()
 
 
 def resource_path(relative_path):
+    # noinspection broad-exception
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -27,7 +28,7 @@ with open(allowed_solutions_path, "r") as file:
 
 def best_guess(letters, words, green_letters):
     greens = green_letters.copy()
-    possible, x = get_words()
+    possible, x = ALL_WORDS
     # breakpoint()
     guesses = []
     for word in possible:
@@ -53,8 +54,8 @@ def best_guess(letters, words, green_letters):
             for i in range(5):
                 if word[i] not in greens:
                     searching_letters.add(word[i])
-        temp = searching_letters.copy()
-        for letter in temp:
+        t = searching_letters.copy()
+        for letter in t:
             counter = 0
             for word in words:
                 if letter in word:
@@ -82,7 +83,6 @@ def validation(word):
     if word in allowed_solutions:
         return "✅"
     return ""
-
 
 
 def list_all(l, p):
@@ -189,10 +189,11 @@ def get_words():
             probability[word] = prob
 
     return words, probability
+ALL_WORDS = get_words()  # Optimisation
 
 
 def validate_word(word):
-    words, _ = get_words()
+    words, _ = ALL_WORDS
 
     guess = ""
     for i in word:
@@ -220,7 +221,7 @@ def instruct():
 
 def main():
 
-    words, probs = get_words()
+    words, probs = ALL_WORDS
     memory = None
     speed_run = False
     speed_run_current = None
@@ -244,6 +245,7 @@ def main():
 
     # words list is all current possible words in order
 
+    # noinspection deprecation
     os.system("cls" if os.name == "nt" else "clear")
     print(f"{Fore.LIGHTBLACK_EX}GAME HAS BEEN RESET\n{Style.RESET_ALL}")
     instruct()
@@ -466,5 +468,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(f"{Fore.GREEN}\n\nThank you for using.{Style.RESET_ALL}")
         time.sleep(2)
-        sys.exit()
     sys.exit()
