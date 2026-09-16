@@ -328,7 +328,7 @@ def main():
                     shortcut = list()
                     for i in range(5)[::-1]:
                         shortcut.append(best[i])
-                        print(str(i+1) + ": " + Fore.CYAN + best[i].upper() + Style.RESET_ALL + f" {validation(i)}")
+                        print(str(i+1) + ": " + Fore.CYAN + best[i].upper() + Style.RESET_ALL + f" {validation(best[i])}")
                 except IndexError:
                     pass
                 shortcut = shortcut[::-1]
